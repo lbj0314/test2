@@ -1,0 +1,26 @@
+package com.momo.rental;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.ModelAndView;
+
+public class ImgController {
+	
+	
+	@GetMapping(value = "fileWrite")
+	public ModelAndView fileWrite() throws Exception{
+		ModelAndView mv = new ModelAndView();
+		
+		mv.addObject("img", "img");
+		mv.setViewName("img/imgWrite");
+		return mv;
+	}
+	
+	@PostMapping(value = "fileWrite")
+	public ModelAndView fileWrite() throws Exception{
+		ModelAndView mv = new ModelAndView();
+		
+		return mv;
+	}
+	
+}

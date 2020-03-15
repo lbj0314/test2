@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  <mapper namespace="qnaMapper">
+  <!-- 중복된 sql문 작성 -->
+ 	<sql id="bs">
+ 		<choose>
+			<when test="kind == 'kt'">
+				WHERE title LIKE '%'||#{search}||'%'
+			</when>
+			<when test="kind == 'kw'">
+				WHERE writer LIKE '%'||#{search}||'%'
+			</when>
+			<otherwise>
+				WHERE contents LIKE '%'||#{search}||'%'
+			</otherwise>
+		</choose>
+ 	</sql>
+ 	<sql id="ref">
+ 		(SELECT ref FROM qna WHERE num = #{num})
+ 	</sql>
+ 	<sql id="step">
+ 		(SELECT step FROM qna WHERE num = #{num})
+ 	</sql>
+ 	<sql id="depth">
+ 		(SELECT depth FROM qna WHERE num = #{num})
+ 	</sql>
+ 	
+  <!-- 전체 -->
+ 	<select id="boardList" parameterType="Pager" resultType="BoardQnaVO">
+ 		SELECT * FROM
+ 		(SELECT Q.*, ROWNUM R FROM
+		(SELECT * FROM qna
+		<include refid="bs" />
+		ORDER BY ref DESC, step ASC) Q)
+		WHERE R BETWEEN #{startRow} AND #{lastRow}
+ 	</select>
+ 	
+ 	<resultMap type="BoardQnaVO" id="boardFiles">
+ 		<id property="num" column="num"/>
+ 		<result property="title" column="title"/>
+ 		<result property="writer" column="writer"/>
+ 		<result property="title" column="title"/>
+ 		<result property="contents" column="contents"/>
+ 		<result property="reg_date" column="reg_date" />
+ 		<result property="hit" column="hit" />
+ 		<result property="ref" column="ref"/>
+ 		<result property="step" column="step" />
+ 		<result property="depth" column="depth"/>
+ 		<collection property="files" javaType="java.util.List" 
+ 			ofType="FilesVO" resultMap="fileResult" />
+ 		
+ 	</resultMap>
+ 	<resultMap type="FilesVO" id="fileResult">
+ 		<id property="fnum" column="fnum"/>
+			<result property="fname" column="fname"/>
+			<result property="oname" column="oname"/>
+ 	</resultMap>
+ 	<!-- 1개 -->
+ 	<select id="boardSelect" resultMap="boardFiles" parameterType="BoardQnaVO">
+ 		SELECT q.*, f.fnum, f.fname, f.oname 
+ 		FROM qna q FULL OUTER JOIN qnafiles f
+		ON (q.num = f.num)
+		WHERE q.num = #{num}
+ 	</select>
+ 	<select id="boardCount" resultType="Integer" parameterType="Pager">
+
+ 		SELECT COUNT(num) FROM qna
+ 		<include refid="bs" />
+
+ 	</select>
+ 	<insert id="boardWrite" parameterType="BoardVO">
+ 		<selectKey order="BEFORE" resultType="Integer" keyProperty="num">
+			SELECT board_seq.nextval FROM dual
+		</selectKey>
+ 		INSERT INTO qna
+ 		VALUES (#{num}, #{title}, #{writer}, #{contents}, SYSDATE, 0, board_seq.currval, 0, 0)
+ 		
+ 	</insert>
+ 	<delete id="boardDelete" parameterType="Integer">
+ 	
+ 		DELETE qna
+ 		WHERE num = #{num}
+ 		
+ 	</delete>
+ 		<update id="boardUpdate" parameterType="BoardVO">
+ 		
+ 		UPDATE qna SET title = #{title}, contents = #{contents}
+ 		WHERE num = #{num}
+ 		
+ 	</update>
+ 	<!-- reply -->
+ 	<insert id="boardReply" parameterType="BoardVO">
+		INSERT INTO qna VALUES(board_seq.nextval, #{title}, #{writer}, #{contents}, SYSDATE, 0,
+		 <include refid="ref"/>, 
+		 <include refid="step"/>+1,
+		 <include refid="depth"/>+1
+		 )
+	</insert>
+
+	<update id="boardReplyUpdate" parameterType="BoardVO">
+		UPDATE qna SET step = step+1 
+		WHERE ref = <include refid="ref"/> 
+		AND step > <include refid="step"/>
+	</update>
+ </mapper>
